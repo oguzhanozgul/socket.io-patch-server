@@ -57,6 +57,7 @@ app.post("/patch", (res, req) => {
     data => {
       const workspaceId = data?.workspace;
       const patchId = data?.patchId;
+      const numPatches = data?.patches?.length;
       // TODO: sanitise data before pushing junk to subscribers
       if (!workspaceId) {
         return res.writeStatus("400").end("No workspace specified");
@@ -64,15 +65,18 @@ app.post("/patch", (res, req) => {
       if (!patchId) {
         return res.writeStatus("400").end("Invalid patch ID");
       }
-
+      if (!numPatches) {
+        return res.writeStatus("400").end("Empty patch list");
+      }
       if (publishedPatchMap.has(patchId)) {
         return res.writeStatus("400").end("Ignoring duplicate patch ID");
       }
 
+
       const topic = `/workspaces/${workspaceId}`;
       const numSubscribers = app.numSubscribers(topic);
       if (numSubscribers) {
-        console.log(`Pushing patch ${patchId} to ${numSubscribers} subscriber(s)`);
+        console.log(`Pushing patch ${patchId} (${numPatches} changes) to ${numSubscribers} subscriber(s)`);
         app.publish(topic, JSON.stringify(data));
       }
       publishedPatchMap.set(patchId, true);
