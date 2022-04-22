@@ -56,7 +56,7 @@ app.post("/patch", (res, req) => {
     res,
     data => {
       const workspaceId = data?.workspace;
-      const patchId = data?.id;
+      const patchId = data?.patchId;
       // TODO: sanitise data before pushing junk to subscribers
       if (!workspaceId) {
         return res.writeStatus("400").end("No workspace specified");
