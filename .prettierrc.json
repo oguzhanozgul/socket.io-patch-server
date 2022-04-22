@@ -1,0 +1,6 @@
+{
+  "arrowParens": "avoid",
+  "proseWrap": "preserve",
+  "trailingComma": "es5",
+  "printWidth": 140
+}
