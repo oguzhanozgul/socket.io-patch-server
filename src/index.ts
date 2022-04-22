@@ -25,7 +25,7 @@ app.ws("/*", {
 
     try {
       const parsedMessage = JSON.parse(Buffer.from(message).toString()) as Message;
-      const workspaceId = parsedMessage?.data?.workspaceId;
+      const workspaceId = parsedMessage?.data?.workspace;
       if (!workspaceId) {
         return;
       }
