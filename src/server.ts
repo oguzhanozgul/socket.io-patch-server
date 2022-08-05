@@ -37,7 +37,7 @@ io.on("connection", socket => {
     }
   });
 
-  socket.on("patch", (data: { workspaceId: string, patchId: string, payload: any }, ack?: (success: boolean) => void) => {
+  socket.on("patch", (data: { workspaceId: string, documentId: string, patchId: string, patches: any }, ack?: (success: boolean) => void) => {
     if (typeof data?.patchId === "string" && typeof data?.workspaceId === "string") {
       if (!publishedPatchMap.has(data.patchId)) {
         publishedPatchMap.set(data.patchId, true);

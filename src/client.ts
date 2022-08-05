@@ -19,21 +19,24 @@ const unsubFromWorkspace = (workspaceId: string) => {
   });
 };
 
-const submitPatch = (workspaceId: string, patchId: string, payload: any) => {
-  socket.emit("patch", { workspaceId, patchId, payload }, success => {
+const submitPatch = (workspaceId: string, documentId: string, patches: any) => {
+  const patchId = uuidv4();
+  socket.emit("patch", { workspaceId, documentId, patchId, patches }, success => {
     if (success) {
-      console.log(`Patch ${patchId} sent to ${workspaceId}`);
+      console.log(`Patch ${patchId} for document ${documentId} sent to ${workspaceId}`);
     }
   });
 };
 
 socket.on("connect", () => {
-  const workspaceId = "doc1";
+  const workspaceId = "my-workspace";
+  const docId = "doc1";
   subToWorkspace(workspaceId);
-  submitPatch(workspaceId, uuidv4(), { hello: "world" });
+  submitPatch(workspaceId, docId, ["your-json-patches here"]);
 });
 
-socket.on("patch", (data: { workspaceId: string, patchId: string, payload: any }) => {
+socket.on("patch", (data: { workspaceId: string, documentId: string, patchId: string, patches: any }) => {
   console.log(`Patch ${data.patchId} received for workspace ${data.workspaceId}`);
-  console.log({ payload: data.payload });
+  const { documentId, patches } = data;
+  console.log({ documentId, patches });
 });
