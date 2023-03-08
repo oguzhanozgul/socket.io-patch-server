@@ -1,0 +1,9 @@
+services:
+  app:
+    volumes:
+      - "./src:/app/src"
+    build:
+      context: .
+      dockerfile: "dockerfile.dev"
+    ports:
+      - "9001:9001"

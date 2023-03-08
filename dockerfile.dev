@@ -1,0 +1,11 @@
+
+FROM node:alpine
+WORKDIR /app
+COPY package.json ./
+COPY package-lock.json ./
+COPY tsconfig.json ./
+VOLUME [ "/data" ]
+COPY src ./src
+RUN npm install
+EXPOSE 9001
+CMD ["npm", "run", "start-server-container"]
