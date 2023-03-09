@@ -17,5 +17,8 @@
     "titleBar.inactiveBackground": "#5d676e99",
     "titleBar.inactiveForeground": "#e7e7e799"
   },
-  "peacock.color": "#5d676e"
+  "peacock.color": "#5d676e",
+  "cSpell.words": [
+    "uuidv"
+  ]
 }

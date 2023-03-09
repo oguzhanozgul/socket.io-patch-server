@@ -2,6 +2,8 @@ import { LRUMap } from "mnemonist";
 import { Server } from "socket.io";
 import { createServer } from "http";
 import { WorkspaceData } from "./WorkspaceData";
+import { v4 as uuidv4 } from "uuid";
+
 
 const port = 9001;
 const publishedPatchMap: LRUMap<string, boolean> = new LRUMap<string, boolean>(10000);
@@ -35,7 +37,7 @@ io.on("connection", socket => {
         console.log(`Adding client ${socket.id} to ${data.workspaceId}`);
         socket.join(data.workspaceId);
         socket.emit("documents",
-          { workspace: data.workspaceId, documents: database.getDocumentNames(data.workspaceId) }
+          { workspace: data.workspaceId, documents: database.getWorkspaceDocumentNames(data.workspaceId) }
         );
 
         io.in(data.workspaceId).emit("message", `Added client ${socket.id} to ${data.workspaceId}`);
@@ -130,7 +132,7 @@ io.on("connection", socket => {
       database.createDocument(data.workspaceId, data.documentId);
       io.in(data.workspaceId).emit("message", `Created new document ${data.documentId} in workspace ${data.workspaceId}`);
       io.in(data.workspaceId).emit("documents",
-        { workspace: data.workspaceId, documents: database.getDocumentNames(data.workspaceId) }
+        { workspace: data.workspaceId, documents: database.getWorkspaceDocumentNames(data.workspaceId) }
       );
 
       console.log(`Created new document ${data.documentId} in workspace ${data.workspaceId}`);
@@ -161,7 +163,7 @@ io.on("connection", socket => {
       database.deleteDocument(data.workspaceId, data.documentId);
       io.in(data.workspaceId).emit("message", `Deleted document ${data.documentId} in workspace ${data.workspaceId}`);
       io.in(data.workspaceId).emit("documents",
-        { workspace: data.workspaceId, documents: database.getDocumentNames(data.workspaceId) }
+        { workspace: data.workspaceId, documents: database.getWorkspaceDocumentNames(data.workspaceId) }
       );
 
       console.log(`Deleted document ${data.documentId} in workspace ${data.workspaceId}`);
@@ -175,6 +177,76 @@ io.on("connection", socket => {
     }
   })
 
+  socket.on("open-document", (data: { workspaceId: string, documentId: string }, ack?: (success: boolean) => void) => {
+
+    if (typeof data?.workspaceId === "string" && typeof data?.documentId === "string") {
+
+      if (!database.doesWorkspaceExist(data.workspaceId)) {
+        socket.emit("message", `Error: Workspace ${data.workspaceId} does not exist`)
+        if (ack) ack(false);
+        return;
+      }
+      if (!database.doesDocumentExist(data.workspaceId, data.documentId)) {
+        socket.emit("message", `Error: Document ${data.documentId} does not exist in workspace ${data.workspaceId}`)
+        if (ack) ack(false);
+        return;
+      }
+
+      socket.emit("entries",
+        { workspace: data.workspaceId, document: data.documentId, entries: database.getDocumentEntries(data.workspaceId, data.documentId) }
+      );
+
+      console.log(`Sent entries in document ${data.documentId} in workspace ${data.workspaceId}`);
+      if (ack) ack(true);
+      return;
+    }
+
+    if (ack) {
+      ack(false);
+      socket.emit("message", `Error: Cannot open document ${data.documentId} in workspace ${data.workspaceId}`);
+    }
+  })
+
+  socket.on("create-entry", (data: { workspaceId: string, documentId: string, id: string, key: string, value: string }, ack?: (success: boolean) => void) => {
+
+    if (
+      typeof data?.workspaceId === "string"
+      && typeof data?.documentId === "string"
+      && typeof data?.key === "string"
+      && typeof data?.value === "string"
+    ) {
+
+      if (!database.doesWorkspaceExist(data.workspaceId)) {
+        socket.emit("message", `Error: Workspace ${data.workspaceId} does not exist`)
+        if (ack) ack(false);
+        return;
+      }
+      if (!database.doesDocumentExist(data.workspaceId, data.documentId)) {
+        socket.emit("message", `Error: Document ${data.documentId} does not exist in workspace ${data.workspaceId}`)
+        if (ack) ack(false);
+        return;
+      }
+
+      database.addEntry(
+        data.workspaceId,
+        data.documentId,
+        { id: data.id, content: { [data.key]: data.value } })
+
+      io.in(data.workspaceId).emit("message", `Added entry {${data.key}: ${data.value}} in document ${data.documentId} in workspace ${data.workspaceId}`);
+      io.in(data.workspaceId).emit("entries",
+        { workspace: data.workspaceId, document: data.documentId, entries: database.getDocumentEntries(data.workspaceId, data.documentId) }
+      );
+
+      console.log(`Added new entry {${data.key}: ${data.value}} in document ${data.documentId} in workspace ${data.workspaceId}`);
+      if (ack) ack(true);
+      return;
+    }
+
+    if (ack) {
+      ack(false);
+      socket.emit("message", `Error: Cannot create entry {${data.key}: ${data.value}} in document ${data.documentId} in workspace ${data.workspaceId}`);
+    }
+  })
 
   socket.on("patch", (data: { workspaceId: string, documentId: string, patchId: string, patches: any }, ack?: (success: boolean) => void) => {
     if (typeof data?.patchId === "string" && typeof data?.workspaceId === "string") {
