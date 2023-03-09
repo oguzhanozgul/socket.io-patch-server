@@ -1,17 +1,20 @@
 
 export type Entry = Map<string, string>;
 export type Entries = Map<string, Entry>;
-export type Files = Map<string, Entry[]>;
-export type Workspaces = Map<string, File[]>;
+export type Documents = Map<string, Entries>;
+export type Workspaces = Map<string, Documents>;
 
 export class WorkspaceData {
   workspaces: Workspaces = new Map();
 
+  // Workspace functionality
   addWorkspace(wsName: string) {
-    this.workspaces.set(wsName, []);
+    if (!this.workspaces.has(wsName)) {
+      this.workspaces.set(wsName, new Map());
+    }
   }
 
-  removeWorkspace(wsName: string) {
+  deleteWorkspace(wsName: string) {
     this.workspaces.delete(wsName);
   }
 
@@ -19,18 +22,34 @@ export class WorkspaceData {
     return this.workspaces.has(wsName);
   }
 
-  maybeCreateWorkspace(wsName: string) {
-    if (!this.doesWorkspaceExist(wsName)) {
-      this.addWorkspace(wsName);
+  getWorkspaceNames() {
+    if (this.workspaces.keys()) {
+      return Array.from(this.workspaces.keys());
+    }
+    return [];
+  }
+
+  // Document functionality
+  addDocument(wsName: string, documentName: string) {
+    if (this.workspaces.has(wsName) && !this.workspaces.get(wsName)?.has(documentName)) {
+      this.workspaces.get(wsName)?.set(documentName, new Map());
     }
   }
 
-  createWorkspace(wsName: string) {
-    this.addWorkspace(wsName);
+  deleteDocument(wsName: string, documentName: string) {
+    this.workspaces.get(wsName)?.delete(documentName);
   }
 
-  getWorkspaceNames() {
-    return Array.from(this.workspaces.keys());
+  doesDocumentExist(wsName: string, documentName: string) {
+    return this.workspaces.get(wsName)?.has(documentName);
+  }
+
+  getDocumentNames(wsName: string) {
+    const documents = this.workspaces.get(wsName);
+    if (documents) {
+      return Array.from(documents.keys());
+    }
+    return [];
   }
 
 } 

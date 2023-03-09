@@ -27,11 +27,11 @@ io.on("connection", socket => {
 
         // if WS doesn't exist, create it and publish the list of workspaces
         if (!database.doesWorkspaceExist(data.workspaceId)) {
-          database.createWorkspace(data.workspaceId);
+          database.addWorkspace(data.workspaceId);
+          io.emit("message", `Added new workspace ${data.workspaceId}`);
           io.emit("workspaces", database.getWorkspaceNames());
         }
 
-        console.log(database.workspaces);
         console.log(`Adding client ${socket.id} to ${data.workspaceId}`);
         socket.join(data.workspaceId);
 
@@ -69,7 +69,8 @@ io.on("connection", socket => {
     if (typeof data?.workspaceId === "string") {
       if (database.doesWorkspaceExist(data.workspaceId)) {
         console.log(`Deleting workspace ${data.workspaceId}`);
-        database.removeWorkspace(data.workspaceId);
+        io.socketsLeave(data.workspaceId);
+        database.deleteWorkspace(data.workspaceId);
         io.emit("workspaces", database.getWorkspaceNames());
         if (ack) {
           ack(true);
