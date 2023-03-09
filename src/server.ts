@@ -20,31 +20,32 @@ io.on("connection", socket => {
   io.emit("message", `Client ${socket.id} connected`);
   socket.emit("workspaces", database.getWorkspaceNames());
 
-  // subscribe to workspace, create workspace if doesn't exist
+  // subscribe to workspace
   socket.on("subscribe",
     (data: { workspaceId: string }, ack?: (success: boolean) => void) => {
+
       if (typeof data?.workspaceId === "string") {
 
-        // if WS doesn't exist, create it and publish the list of workspaces
         if (!database.doesWorkspaceExist(data.workspaceId)) {
-          database.addWorkspace(data.workspaceId);
-          io.emit("message", `Added new workspace ${data.workspaceId}`);
-          io.emit("workspaces", database.getWorkspaceNames());
+          socket.emit("message", `Error: Workspace ${data.workspaceId} does not exist`);
+          if (ack) ack(false);
+          return;
         }
 
         console.log(`Adding client ${socket.id} to ${data.workspaceId}`);
         socket.join(data.workspaceId);
+        socket.emit("documents",
+          { workspace: data.workspaceId, documents: database.getDocumentNames(data.workspaceId) }
+        );
 
-        if (ack) {
-          ack(true);
-          io.emit("message", `Added client ${socket.id} to ${data.workspaceId}`);
-        }
+        io.in(data.workspaceId).emit("message", `Added client ${socket.id} to ${data.workspaceId}`);
+        if (ack) ack(true);
         return;
       }
 
       if (ack) {
         ack(false);
-        io.emit("message", `Error: Cannot add client ${socket.id} to ${data.workspaceId}`);
+        socket.emit("message", `Error: Cannot add client ${socket.id} to ${data.workspaceId}`);
       }
     });
 
@@ -52,17 +53,38 @@ io.on("connection", socket => {
     if (typeof data?.workspaceId === "string") {
       console.log(`Removing client ${socket.id} from ${data.workspaceId}`);
       socket.leave(data.workspaceId);
-      if (ack) {
-        ack(true);
-        io.emit("message", `Removed client ${socket.id} from ${data.workspaceId}`);
-      }
+      io.in(data.workspaceId).emit("message", `Removed client ${socket.id} from ${data.workspaceId}`);
+      if (ack) ack(true);
       return;
     }
     if (ack) {
       ack(false);
-      io.emit("message", `Error: Cannot remove client ${socket.id} from ${data.workspaceId}`);
+      socket.emit("message", `Error: Cannot remove client ${socket.id} from ${data.workspaceId}`);
     }
   });
+
+  // Create workspace
+  socket.on("create-workspace", (data: { workspaceId: string }, ack?: (success: boolean) => void) => {
+
+    if (typeof data?.workspaceId === "string") {
+      if (database.doesWorkspaceExist(data.workspaceId)) {
+        socket.emit("message", `Error: Workspace ${data.workspaceId} already exists`)
+        if (ack) ack(false);
+        return;
+      }
+      database.createWorkspace(data.workspaceId);
+      io.emit("message", `Created new workspace ${data.workspaceId}`);
+      io.emit("workspaces", database.getWorkspaceNames());
+      console.log(`Created new workspace ${data.workspaceId}`);
+      if (ack) ack(true);
+      return;
+    }
+
+    if (ack) {
+      ack(false);
+      socket.emit("message", `Error: Cannot create workspace ${data.workspaceId}`);
+    }
+  })
 
   // delete workspace
   socket.on("delete-workspace", (data: { workspaceId: string }, ack?: (success: boolean) => void) => {
@@ -72,25 +94,87 @@ io.on("connection", socket => {
         io.socketsLeave(data.workspaceId);
         database.deleteWorkspace(data.workspaceId);
         io.emit("workspaces", database.getWorkspaceNames());
-        if (ack) {
-          ack(true);
-          io.emit("message", `Deleted workspace ${data.workspaceId}`);
-        }
+        io.emit("message", `Deleted workspace ${data.workspaceId}`);
+        if (ack) ack(true);
         return;
       }
 
       if (ack) {
         ack(false);
-        io.emit("message", `Error: Workspace ${data.workspaceId} does not exist`);
+        socket.emit("message", `Error: Workspace ${data.workspaceId} does not exist`);
       }
       return;
 
     }
     if (ack) {
       ack(false);
-      io.emit("message", `Error: Cannot delete workspace ${data.workspaceId}`);
+      socket.emit("message", `Error: Cannot delete workspace ${data.workspaceId}`);
     }
   });
+
+
+  socket.on("create-document", (data: { workspaceId: string, documentId: string }, ack?: (success: boolean) => void) => {
+
+    if (typeof data?.workspaceId === "string" && typeof data?.documentId === "string") {
+
+      if (!database.doesWorkspaceExist(data.workspaceId)) {
+        socket.emit("message", `Error: Workspace ${data.workspaceId} does not exist`)
+        if (ack) ack(false);
+        return;
+      }
+      if (database.doesDocumentExist(data.workspaceId, data.documentId)) {
+        socket.emit("message", `Error: Document ${data.documentId} already exists in workspace ${data.workspaceId}`)
+        if (ack) ack(false);
+        return;
+      }
+      database.createDocument(data.workspaceId, data.documentId);
+      io.in(data.workspaceId).emit("message", `Created new document ${data.documentId} in workspace ${data.workspaceId}`);
+      io.in(data.workspaceId).emit("documents",
+        { workspace: data.workspaceId, documents: database.getDocumentNames(data.workspaceId) }
+      );
+
+      console.log(`Created new document ${data.documentId} in workspace ${data.workspaceId}`);
+      if (ack) ack(true);
+      return;
+    }
+
+    if (ack) {
+      ack(false);
+      socket.emit("message", `Error: Cannot create document ${data.documentId} in workspace ${data.workspaceId}`);
+    }
+  })
+
+  socket.on("delete-document", (data: { workspaceId: string, documentId: string }, ack?: (success: boolean) => void) => {
+
+    if (typeof data?.workspaceId === "string" && typeof data?.documentId === "string") {
+
+      if (!database.doesWorkspaceExist(data.workspaceId)) {
+        socket.emit("message", `Error: Workspace ${data.workspaceId} does not exist`)
+        if (ack) ack(false);
+        return;
+      }
+      if (!database.doesDocumentExist(data.workspaceId, data.documentId)) {
+        socket.emit("message", `Error: Document ${data.documentId} does not exist in workspace ${data.workspaceId}`)
+        if (ack) ack(false);
+        return;
+      }
+      database.deleteDocument(data.workspaceId, data.documentId);
+      io.in(data.workspaceId).emit("message", `Deleted document ${data.documentId} in workspace ${data.workspaceId}`);
+      io.in(data.workspaceId).emit("documents",
+        { workspace: data.workspaceId, documents: database.getDocumentNames(data.workspaceId) }
+      );
+
+      console.log(`Deleted document ${data.documentId} in workspace ${data.workspaceId}`);
+      if (ack) ack(true);
+      return;
+    }
+
+    if (ack) {
+      ack(false);
+      socket.emit("message", `Error: Cannot delete document ${data.documentId} in workspace ${data.workspaceId}`);
+    }
+  })
+
 
   socket.on("patch", (data: { workspaceId: string, documentId: string, patchId: string, patches: any }, ack?: (success: boolean) => void) => {
     if (typeof data?.patchId === "string" && typeof data?.workspaceId === "string") {

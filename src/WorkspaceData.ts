@@ -8,7 +8,7 @@ export class WorkspaceData {
   workspaces: Workspaces = new Map();
 
   // Workspace functionality
-  addWorkspace(wsName: string) {
+  createWorkspace(wsName: string) {
     if (!this.workspaces.has(wsName)) {
       this.workspaces.set(wsName, new Map());
     }
@@ -30,7 +30,7 @@ export class WorkspaceData {
   }
 
   // Document functionality
-  addDocument(wsName: string, documentName: string) {
+  createDocument(wsName: string, documentName: string) {
     if (this.workspaces.has(wsName) && !this.workspaces.get(wsName)?.has(documentName)) {
       this.workspaces.get(wsName)?.set(documentName, new Map());
     }

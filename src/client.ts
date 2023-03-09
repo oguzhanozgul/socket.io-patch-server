@@ -3,6 +3,14 @@ import { v4 as uuidv4 } from "uuid";
 
 const socket = io("http://localhost:9001");
 
+const createWorkspace = (workspaceId: string) => {
+  socket.emit("create-workspace", { workspaceId }, (success: boolean) => {
+    if (success) {
+      console.log(`Created workspace ${workspaceId}`);
+    }
+  });
+};
+
 const subToWorkspace = (workspaceId: string) => {
   socket.emit("subscribe", { workspaceId }, (success: boolean) => {
     if (success) {
@@ -31,6 +39,7 @@ const submitPatch = (workspaceId: string, documentId: string, patches: any) => {
 socket.on("connect", () => {
   const workspaceId = "my-workspace";
   const docId = "doc1";
+  createWorkspace(workspaceId);
   subToWorkspace(workspaceId);
   submitPatch(workspaceId, docId, ["your-json-patches here"]);
 });
