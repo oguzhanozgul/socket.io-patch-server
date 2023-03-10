@@ -99,6 +99,23 @@ export class WorkspaceData {
     }
   }
 
+  moveEntry(
+    wsName: string,
+    documentName: string,
+    entryId: string,
+    direction: "up" | "down"
+  ) {
+    const entries = this.workspaces.get(wsName)?.get(documentName);
+    if (entries && entries.length > 0) {
+      const oldIndex = entries.findIndex(entry => entry.id === entryId);
+      const newIndex = direction === "up" ? oldIndex - 1 : oldIndex + 1;
+      const entryAtNewIndex = entries[newIndex];
+      entries[newIndex] = structuredClone(entries[oldIndex]);
+      entries[oldIndex] = structuredClone(entryAtNewIndex);
+      this.workspaces.get(wsName)?.set(documentName, entries);
+    }
+  }
+
   doesEntryExist(wsName: string, documentName: string, entryId: string) {
     return this.workspaces.get(wsName)?.get(documentName)?.find(entry => entry.id === entryId) !== undefined;
   }
