@@ -80,6 +80,25 @@ export class WorkspaceData {
     }
   }
 
+  changeEntry(
+    wsName: string,
+    documentName: string,
+    entry: { id: string, key: string, value: string }
+  ) {
+    const entries = this.workspaces.get(wsName)?.get(documentName);
+    if (entries && entries.length > 0) {
+      const newEntries = entries.map(ent => {
+        if (ent.id === entry.id) {
+          return { id: entry.id, key: entry.key, value: entry.value }
+        } else {
+          return ent;
+        }
+      }
+      );
+      this.workspaces.get(wsName)?.set(documentName, newEntries);
+    }
+  }
+
   doesEntryExist(wsName: string, documentName: string, entryId: string) {
     return this.workspaces.get(wsName)?.get(documentName)?.find(entry => entry.id === entryId) !== undefined;
   }

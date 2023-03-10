@@ -294,6 +294,58 @@ io.on("connection", socket => {
     }
   })
 
+  socket.on("change-entry", (data: { workspaceId: string, documentId: string, id: string, key: string, value: string }, ack?: (success: boolean) => void) => {
+
+    if (
+      typeof data?.workspaceId === "string"
+      && typeof data?.documentId === "string"
+      && typeof data?.id === "string"
+      && typeof data?.key === "string"
+      && typeof data?.value === "string"
+    ) {
+
+      if (!database.doesWorkspaceExist(data.workspaceId)) {
+        socket.emit("message", `Error: Workspace ${data.workspaceId} does not exist`)
+        if (ack) ack(false);
+        return;
+      }
+      if (!database.doesDocumentExist(data.workspaceId, data.documentId)) {
+        socket.emit("message", `Error: Document ${data.documentId} does not exist in workspace ${data.workspaceId}`)
+        if (ack) ack(false);
+        return;
+      }
+      if (!database.doesEntryExist(data.workspaceId, data.documentId, data.id)) {
+        socket.emit("message", `Error: Entry ${data.id} does not exist in document ${data.documentId} in workspace ${data.workspaceId}`)
+        if (ack) ack(false);
+        return;
+      }
+
+      database.changeEntry(
+        data.workspaceId,
+        data.documentId,
+        {
+          id: data.id,
+          key: data.key,
+          value: data.value
+        },
+      )
+
+      io.in(data.workspaceId).emit("message", `Changed entry ${data.id} to {${data.key}: ${data.value}} in document ${data.documentId} in workspace ${data.workspaceId}`);
+      io.in(data.workspaceId).emit("entries",
+        { workspace: data.workspaceId, document: data.documentId, entries: database.getDocumentEntries(data.workspaceId, data.documentId) }
+      );
+
+      console.log(`Changed entry ${data.id} to {${data.key}: ${data.value}} in document ${data.documentId} in workspace ${data.workspaceId}`);
+      if (ack) ack(true);
+      return;
+    }
+
+    if (ack) {
+      ack(false);
+      socket.emit("message", `Error: Cannot delete entry ${data.id} in document ${data.documentId} in workspace ${data.workspaceId}`);
+    }
+  })
+
   socket.on("patch", (data: { workspaceId: string, documentId: string, patchId: string, patches: any }, ack?: (success: boolean) => void) => {
     if (typeof data?.patchId === "string" && typeof data?.workspaceId === "string") {
       if (!publishedPatchMap.has(data.patchId)) {
