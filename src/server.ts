@@ -230,7 +230,7 @@ io.on("connection", socket => {
       database.addEntry(
         data.workspaceId,
         data.documentId,
-        { id: data.id, content: { [data.key]: data.value } })
+        { id: data.id, key: data.key, value: data.value })
 
       io.in(data.workspaceId).emit("message", `Added entry {${data.key}: ${data.value}} in document ${data.documentId} in workspace ${data.workspaceId}`);
       io.in(data.workspaceId).emit("entries",
@@ -245,6 +245,52 @@ io.on("connection", socket => {
     if (ack) {
       ack(false);
       socket.emit("message", `Error: Cannot create entry {${data.key}: ${data.value}} in document ${data.documentId} in workspace ${data.workspaceId}`);
+    }
+  })
+
+  socket.on("delete-entry", (data: { workspaceId: string, documentId: string, entryId: string }, ack?: (success: boolean) => void) => {
+
+    if (
+      typeof data?.workspaceId === "string"
+      && typeof data?.documentId === "string"
+      && typeof data?.entryId === "string"
+    ) {
+
+      if (!database.doesWorkspaceExist(data.workspaceId)) {
+        socket.emit("message", `Error: Workspace ${data.workspaceId} does not exist`)
+        if (ack) ack(false);
+        return;
+      }
+      if (!database.doesDocumentExist(data.workspaceId, data.documentId)) {
+        socket.emit("message", `Error: Document ${data.documentId} does not exist in workspace ${data.workspaceId}`)
+        if (ack) ack(false);
+        return;
+      }
+      if (!database.doesEntryExist(data.workspaceId, data.documentId, data.entryId)) {
+        socket.emit("message", `Error: Entry ${data.entryId} does not exist in document ${data.documentId} in workspace ${data.workspaceId}`)
+        if (ack) ack(false);
+        return;
+      }
+
+      database.deleteEntry(
+        data.workspaceId,
+        data.documentId,
+        data.entryId,
+      )
+
+      io.in(data.workspaceId).emit("message", `Deleted entry ${data.entryId} in document ${data.documentId} in workspace ${data.workspaceId}`);
+      io.in(data.workspaceId).emit("entries",
+        { workspace: data.workspaceId, document: data.documentId, entries: database.getDocumentEntries(data.workspaceId, data.documentId) }
+      );
+
+      console.log(`Deleted entry ${data.entryId} in document ${data.documentId} in workspace ${data.workspaceId}`);
+      if (ack) ack(true);
+      return;
+    }
+
+    if (ack) {
+      ack(false);
+      socket.emit("message", `Error: Cannot delete entry ${data.entryId} in document ${data.documentId} in workspace ${data.workspaceId}`);
     }
   })
 

@@ -1,6 +1,5 @@
-export type Entry = { [key: string]: string };
-export type Entries = Map<string, Entry>;
-export type Documents = Map<string, Entries>;
+export type Entry = { id: string, key: string, value: string };
+export type Documents = Map<string, Entry[]>;
 export type Workspaces = Map<string, Documents>;
 
 export class WorkspaceData {
@@ -39,7 +38,7 @@ export class WorkspaceData {
   // Document functionality
   createDocument(wsName: string, documentName: string) {
     if (this.workspaces.has(wsName) && !this.workspaces.get(wsName)!.has(documentName)) {
-      this.workspaces.get(wsName)!.set(documentName, new Map());
+      this.workspaces.get(wsName)!.set(documentName, []);
     }
   }
 
@@ -53,15 +52,9 @@ export class WorkspaceData {
 
   getDocumentEntries(wsName: string, documentName: string) {
     const entries = this.workspaces.get(wsName)?.get(documentName);
-    if (entries) {
-      const retVal: { id: string, key: string, value: string }[] = [];
-      const asd = Array.from(entries);
-      asd.forEach(element => retVal.push({ id: element[0], key: Object.keys(element[1])[0], value: Object.values(element[1])[0] }))
-      console.warn("Entries:");
-      console.log(asd);
-      return retVal;
+    if (entries && entries.length > 0) {
+      return entries;
     }
-
     return [];
   };
 
@@ -69,22 +62,26 @@ export class WorkspaceData {
   addEntry(
     wsName: string,
     documentName: string,
-    entry: { id: string, content: Entry }
+    entry: { id: string, key: string, value: string }
   ) {
     if (this.workspaces.has(wsName) && this.workspaces.get(wsName)!.has(documentName)) {
       this.workspaces
         .get(wsName)!
         .get(documentName)!
-        .set(entry.id, entry.content);
+        .push({ id: entry.id, key: entry.key, value: entry.value });
     }
   }
 
-  deleteEntry(wsName: string, documentName: string) {
-    this.workspaces.get(wsName)?.delete(documentName);
+  deleteEntry(wsName: string, documentName: string, entryId: string) {
+    const entries = this.workspaces.get(wsName)?.get(documentName);
+    if (entries && entries.length > 0) {
+      const newEntries = entries.filter(entry => entry.id !== entryId);
+      this.workspaces.get(wsName)?.set(documentName, newEntries);
+    }
   }
 
-  doesEntryExist(wsName: string, documentName: string) {
-    return this.workspaces.get(wsName)?.has(documentName);
+  doesEntryExist(wsName: string, documentName: string, entryId: string) {
+    return this.workspaces.get(wsName)?.get(documentName)?.find(entry => entry.id === entryId) !== undefined;
   }
 
 } 
