@@ -396,28 +396,6 @@ io.on("connection", socket => {
     }
   })
 
-  socket.on("patch", (data: { workspaceId: string, documentId: string, patchId: string, patches: any }, ack?: (success: boolean) => void) => {
-    if (typeof data?.patchId === "string" && typeof data?.workspaceId === "string") {
-      if (!publishedPatchMap.has(data.patchId)) {
-        publishedPatchMap.set(data.patchId, true);
-        socket.to(data.workspaceId).emit("patch", data);
-        console.log(`Emitting patch ${data.patchId} to workspace ${data.workspaceId}`);
-        if (ack) {
-          ack(true);
-          io.emit("message", `Emitted patch ${data.patchId} to workspace ${data.workspaceId}`);
-        }
-        return;
-      } else {
-        console.log(`Skipping duplicate patch ${data.patchId}`);
-        io.emit("message", `Skipped duplicate patch ${data.patchId}`);
-      }
-    }
-    if (ack) {
-      ack(false);
-      io.emit("message", `Error: Cannot emit patch ${data.patchId} to workspace ${data.workspaceId}`);
-    }
-  });
-
 });
 
 io.on("disconnect", socket => {
