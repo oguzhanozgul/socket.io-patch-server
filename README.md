@@ -1,13 +1,23 @@
-## socket.io-patch-server
+## Simple Backend for a Real-time Key-Value Editing Application
 
-A very simple socket.io server for recieving and broadcasting data model patches between clients in the same workspace.
+(forked from socket.io-patch-server at [https://github.com/veggiesaurus/socket.io-patch-server](https://github.com/veggiesaurus/socket.io-patch-server))
 
-### Server
+A simple socket.io server for receiving and broadcasting data model patches between clients in the same workspace.
 
-Just run `npm run start-server` to start up the server on port 9001. The server will allow clients to connect and subscribe to a workspace by sending the `"sub"` event with a workspace ID.
+The server uses a simple in-memory database to provide a pseudo-persistent experience.
 
-To run production build in a container, run `docker compose up`.
+## Server
 
-### Client
+Run `npm run start-server` to start up the server on port 9001. The server will allow clients to connect and subscribe to a workspace by sending the `"subscribe"` event with a workspace ID.
 
-An example client is provided (run using `yarn run start-client`). The client connects to the server, subscribes to the `"my-workspace"` workspace and submits an exxample patch to document `"doc1"`.
+You can also run the server in a container via `npm start` command.
+
+## Client
+
+An example client is provided (run using `npm run start-client`). The client connects to the server and subscribes to the `"my-workspace"` workspace.
+
+A prototype for a front end is can also be seen at [key-value-editor.netlify.com](https://key-value-editor.netlify.com)
+
+## CI/CD
+
+Pushes to the main branch triggers a GitHub Actions workflow which builds a Docker images, stores it in the ghcr.io, connects to a VPS, downloads image and runs the container. The above hosted front-end connects to that address, while the local copy connects to localhost.
