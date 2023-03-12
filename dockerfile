@@ -13,6 +13,5 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install --only=production
 COPY --from=build /app/dist .
-RUN mkdir /app/src
 EXPOSE 9001
 CMD ["node", "server.js"]
