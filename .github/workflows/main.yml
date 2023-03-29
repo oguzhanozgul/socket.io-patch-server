@@ -76,6 +76,6 @@ jobs:
             echo "Stopping container if already running"
             docker stop socket.io-patch-server
             echo "Starting container"
-            docker run --rm -d --publish 9001:9001 --name socket.io-patch-server ghcr.io/oguzhanozgul/socket.io-patch-server:main
+            docker run -d --restart unless-stopped --publish 9001:9001 --name socket.io-patch-server ghcr.io/oguzhanozgul/socket.io-patch-server:main
             echo "Deleting image"
             docker rmi ghcr.io/oguzhanozgul/socket.io-patch-server:main -f
